@@ -1,0 +1,137 @@
+classDiagram
+    direction TB
+
+    %% ===== Domain (model) =====
+    class Recipe {
+        -String name
+        -List~Ingredient~ ingredients
+        -int calories
+        -int prepTimeMinutes
+        +Recipe(String, List~Ingredient~, int, int)
+        +getName() String
+        +getIngredients() List~Ingredient~
+        +getCalories() int
+        +getPrepTimeMinutes() int
+        +containsIngredient(String) boolean
+    }
+    class Ingredient {
+        -String name
+        -double quantity
+        -String unit
+        +Ingredient(String, double, String)
+        +getName() String
+        +getQuantity() double
+        +getUnit() String
+        +withQuantity(double) Ingredient
+    }
+    class MealPlan {
+        -Map~DayOfWeek, List~ days
+        +addMeal(DayOfWeek, Recipe) void
+        +removeMeal(DayOfWeek, Recipe) boolean
+        +getMeals(DayOfWeek) List~Recipe~
+        +getAllMeals() List~Recipe~
+        +getTotalCalories(DayOfWeek) int
+    }
+
+    %% ===== Exceptions =====
+    class InvalidRecipeException {
+        +InvalidRecipeException(String)
+    }
+    class StorageException {
+        +StorageException(String, Throwable)
+    }
+    class RuntimeException
+    RuntimeException <|-- InvalidRecipeException
+    RuntimeException <|-- StorageException
+
+    %% ===== Service =====
+    class RecipeBook {
+        -List~Recipe~ recipes
+        +add(Recipe) void
+        +remove(String) boolean
+        +findByName(String) Optional~Recipe~
+        +getAll() List~Recipe~
+        +search(SearchStrategy) List~Recipe~
+        +sorted(Comparator~Recipe~) List~Recipe~
+    }
+    class ShoppingListGenerator {
+        +generate(MealPlan) List~Ingredient~
+    }
+
+    %% ===== Strategy pattern (search) =====
+    class SearchStrategy {
+        <<interface>>
+        +matches(Recipe) boolean
+        +and(SearchStrategy) SearchStrategy
+    }
+    class NameSearch {
+        -String text
+        +matches(Recipe) boolean
+    }
+    class IngredientSearch {
+        -String ingredientName
+        +matches(Recipe) boolean
+    }
+    class MaxCaloriesSearch {
+        -int maxCalories
+        +matches(Recipe) boolean
+    }
+    class MaxPrepTimeSearch {
+        -int maxMinutes
+        +matches(Recipe) boolean
+    }
+    SearchStrategy <|.. NameSearch
+    SearchStrategy <|.. IngredientSearch
+    SearchStrategy <|.. MaxCaloriesSearch
+    SearchStrategy <|.. MaxPrepTimeSearch
+
+    %% ===== Sorting =====
+    class RecipeSortOrder {
+        <<enumeration>>
+        BY_NAME
+        BY_CALORIES
+        BY_PREP_TIME
+        +ascending() Comparator~Recipe~
+        +descending() Comparator~Recipe~
+    }
+
+    %% ===== Persistence =====
+    class RecipeStorage {
+        <<interface>>
+        +save(RecipeBook, MealPlan) void
+        +load(RecipeBook, MealPlan) void
+    }
+    class FileRecipeStorage {
+        -Path file
+        +save(RecipeBook, MealPlan) void
+        +load(RecipeBook, MealPlan) void
+    }
+    RecipeStorage <|.. FileRecipeStorage
+
+    %% ===== UI =====
+    class ConsoleUI {
+        -Scanner in
+        -RecipeBook book
+        -MealPlan plan
+        -RecipeStorage storage
+        +run() void
+    }
+    class Main {
+        +main(String[]) void$
+    }
+
+    %% ===== Relationships with multiplicities =====
+    Recipe "1" *-- "1..*" Ingredient : composition
+    RecipeBook "1" o-- "0..*" Recipe : aggregation
+    MealPlan "1" o-- "0..*" Recipe : planned meals per day
+    ConsoleUI "1" --> "1" RecipeBook
+    ConsoleUI "1" --> "1" MealPlan
+    ConsoleUI "1" --> "1" RecipeStorage
+    ConsoleUI ..> SearchStrategy : chooses at runtime
+    ConsoleUI ..> RecipeSortOrder
+    ConsoleUI ..> ShoppingListGenerator
+    RecipeBook ..> SearchStrategy : uses
+    ShoppingListGenerator ..> MealPlan : reads
+    FileRecipeStorage ..> StorageException : throws
+    Recipe ..> InvalidRecipeException : throws
+    Main ..> ConsoleUI : creates
