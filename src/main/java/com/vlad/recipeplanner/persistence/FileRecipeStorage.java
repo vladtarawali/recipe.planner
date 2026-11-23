@@ -7,6 +7,8 @@ import com.vlad.recipeplanner.model.MealPlan;
 import com.vlad.recipeplanner.model.Recipe;
 import com.vlad.recipeplanner.service.RecipeBook;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -50,7 +52,13 @@ public class FileRecipeStorage implements RecipeStorage {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            Files.write(file, lines, StandardCharsets.UTF_8);
+            // try-with-resources: the writer is closed automatically, even if an error occurs
+            try (BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
         } catch (IOException e) {
             throw new StorageException("Could not save data to " + file, e);
         }
@@ -61,9 +69,13 @@ public class FileRecipeStorage implements RecipeStorage {
         if (!Files.exists(file)) {
             return; // first run, nothing saved yet
         }
-        List<String> lines;
-        try {
-            lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+        List<String> lines = new ArrayList<>();
+        // try-with-resources: the reader is closed automatically
+        try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
         } catch (IOException e) {
             throw new StorageException("Could not read data from " + file, e);
         }
