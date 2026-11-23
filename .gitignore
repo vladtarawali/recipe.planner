@@ -1,20 +1,4 @@
-# Build output
 target/
-out/
-build/
-
-# IDE files
 .idea/
 *.iml
-*.iws
-*.ipr
-.classpath
-.project
-.settings/
-.vscode/
-
-# OS files
-.DS_Store
-
-# Local data
 data/
